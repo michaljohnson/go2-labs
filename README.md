@@ -34,5 +34,3 @@ We don't copy their instructions — read them at the source:
 - [Lichtblick](https://github.com/lichtblick-suite/lichtblick) — open-source viewer, no account needed.
 - [RAP-EN/random_walk](https://github.zhaw.ch/RAP-EN/random_walk) — the random-walk node used in
   lab 1. Clone it into your own workspace; it is not part of this repo.
-
-

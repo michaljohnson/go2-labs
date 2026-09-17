@@ -26,8 +26,9 @@ doesn't matter.
 
 ## Driving it 🚧
 
-🚧 = the image builds and the whole chain works without the dog (bridge → teleop → `api_id` 1008/1003),
-but it has not yet driven a real dog; the native path in the appendix has.
+🚧 = tested without the dog on a Jetson: the image builds, teleop produces `api_id` 1008/1003 through
+the bridge, and recording and replaying a bag works. Not yet driven on a real dog; the native path in
+the appendix has.
 
 ```bash
 ssh <user>@<jetson>

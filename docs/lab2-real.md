@@ -24,11 +24,19 @@ doesn't matter.
   repeats the last command at 10 Hz and sends `StopMove` 1 s after the last one. `k` stops at once;
   Ctrl+C in the bridge stops the dog before it exits
 
-## Driving it 🚧
+## Driving it ✅
 
-🚧 = tested without the dog on a Jetson: the image builds, teleop produces `api_id` 1008/1003 through
-the bridge, and recording and replaying a bag works. Not yet driven on a real dog; the native path in
-the appendix has.
+Tested end to end: the image builds on a Jetson, the container drives the real dog with
+`teleop_twist_keyboard`, and bags record and replay.
+
+**The Jetson's Ethernet needs a fixed address on the dog's network**, since the Go2 has no DHCP
+server. Once per Jetson:
+```bash
+sudo nmcli con mod "Wired connection 1" ipv4.method manual ipv4.addresses 192.168.123.99/24
+sudo nmcli con up "Wired connection 1"
+ping -c2 192.168.123.161        # the dog's main board
+```
+Keep a second way in (Wi-Fi) before you rely on that cable, or a mistake locks you out of the Jetson.
 
 ```bash
 ssh <user>@<jetson>

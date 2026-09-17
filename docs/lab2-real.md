@@ -26,7 +26,8 @@ doesn't matter.
 
 ## Driving it 🚧
 
-🚧 = the image has not been built and driven on the dog yet; the native path in the appendix has.
+🚧 = the image builds and the whole chain works without the dog (bridge → teleop → `api_id` 1008/1003),
+but it has not yet driven a real dog; the native path in the appendix has.
 
 ```bash
 ssh <user>@<jetson>
@@ -52,12 +53,14 @@ from the keyboard, from a bag, or from your own node — the dog walks either wa
 1. Start the bridge and teleop as above, and drive a short route: a few metres, one turn.
 2. Record while you drive, in a third terminal:
    ```bash
-   ros2 bag record -o my_route /cmd_vel /odom /sportmodestate
+   docker exec -it go2 /entrypoint.sh ros2 bag record -o my_route /cmd_vel /odom /sportmodestate
    ```
-   Only these three topics. With the lidar the bag grows to gigabytes.
+   Only these three topics — with the lidar the bag grows to gigabytes. Bags land in `bags/` in the
+   repo folder on the Jetson, which `run.sh` mounts into the container; the container itself is
+   thrown away when it stops.
 3. Stop the recording and teleop, leave the bridge running, then:
    ```bash
-   ros2 bag play my_route
+   docker exec -it go2 /entrypoint.sh ros2 bag play my_route
    ```
 4. The dog walks the route again. Watch what the bridge prints while it does.
 

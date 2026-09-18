@@ -35,6 +35,9 @@ grep -q ", ' -r -s'\]" "$launch" || sed -i "s/, ' -r'\]/, ' -r -s']/" "$launch"
 # which kills the server. Without sensors the dog walks fine.
 python3 "$(dirname "$0")/patches/make_headless_world.py"
 
+# Same world plus static obstacles, so a walking dog is visibly going somewhere.
+python3 "$(dirname "$0")/patches/make_lab_world.py"
+
 # --skip-keys: upstream asks for "unitree_applications", but the package is "unitree_application".
 cd "$WS"
 rosdep install --from-paths src --ignore-src -y --skip-keys unitree_applications

@@ -18,9 +18,15 @@ survives a pod restart. The `apt` packages it installs do not survive, so run it
 
 ## Starting it — four terminals
 
+Every terminal needs the same two exports first (`DISPLAY` only where a window opens):
+
+```bash
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp   # without it, service calls hang - see the table below
+cd ~/rap/cas/go2_ws && source install/setup.bash
+```
+
 ```bash
 # 1  simulation (leave running, give it ~1 min for the controllers)
-cd ~/rap/cas/go2_ws && source install/setup.bash
 ros2 launch unitree_go2_sim unitree_go2_launch.py rviz:=false \
   world:=$HOME/rap/cas/go2_ws/src/unitree_go2_ros2/unitree_go2_description/worlds/headless.sdf \
   disable_camera:=true disable_d455:=true disable_lidar_l1:=true disable_velodyne_lidar:=true
@@ -43,7 +49,7 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 your own laptop instead of noVNC, see [`../viz/README.md`](../viz/README.md).
 
 Checks: `ros2 control list_controllers` (both `active`), `ros2 topic echo /odom --once`
-(`position.x` grows while walking), `ros2 topic hz /joint_states` (~50 Hz).
+(`position.x` grows while walking), `ros2 topic hz /joint_states` (~150 Hz, one publisher).
 
 ## Why the patches, and the cluster's quirks
 

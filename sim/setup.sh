@@ -12,6 +12,7 @@
 # true for every pod, since they all use /home/ros/rap.
 set -e
 
+HERE="$(cd "$(dirname "$0")" && pwd)"   # absolute: the script cds later, relative paths would break
 WS="$HOME/rap/cas/go2_ws"
 SIM_REPO="https://github.com/khaledgabr77/unitree_go2_ros2.git"
 SIM_REF="55ff151632a0220bf3ae0c0772392615d86da7a8"   # 2026-09-16
@@ -42,8 +43,8 @@ fi
 
 # A world without the sensor plugin: it renders, and the pod denies /dev/dri, which kills
 # the server. Without sensors the dog walks fine. Then the same world plus a hall to walk in.
-python3 "$(dirname "$0")/patches/make_headless_world.py"
-python3 "$(dirname "$0")/patches/make_lab_world.py"
+python3 "$HERE/patches/make_headless_world.py"
+python3 "$HERE/patches/make_lab_world.py"
 
 if [ "$1" != "--prebuilt" ]; then
   # --skip-keys: upstream asks for "unitree_applications", but the package is "unitree_application".

@@ -1,0 +1,44 @@
+# Jazzy robot-side image that speaks zenoh to the outside and the Unitree SDK to the dog.
+#
+#   docker build -f robot/Dockerfile.sdk -t cas-go2-sdk robot/
+#
+# Why a second image instead of changing the working one:
+#
+#   cas-go2-robot (Humble)  unitree_ros2 messages over CycloneDDS. Proven on a real dog,
+#                           but Humble cannot talk to a Jazzy pod (type hashes differ),
+#                           and CycloneDDS cannot talk to rmw_zenoh.
+#   cas-go2-sdk   (Jazzy)   /cmd_vel over ANY rmw (we use zenoh) + unitree_sdk2py talking
+#                           to the dog inside the same process. No unitree_ros2, so the
+#                           distro no longer matters, and no bridge process beside it.
+#
+# The SDK needs CycloneDDS 0.10.x built from source for its Python bindings; that is the
+# only slow part of this build (a few minutes on an Orin).
+FROM ros:jazzy-ros-base
+
+ARG CYCLONEDDS_REF=releases/0.10.x
+ARG SDK_REPO=https://github.com/unitreerobotics/unitree_sdk2_python.git
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git cmake build-essential python3-pip \
+      ros-jazzy-rmw-zenoh-cpp \
+      ros-jazzy-teleop-twist-keyboard \
+    && rm -rf /var/lib/apt/lists/*
+
+# CycloneDDS C library, which the SDK's Python bindings link against.
+RUN git clone --depth 1 -b ${CYCLONEDDS_REF} https://github.com/eclipse-cyclonedds/cyclonedds /opt/cyclonedds \
+    && cmake -S /opt/cyclonedds -B /opt/cyclonedds/build -DCMAKE_INSTALL_PREFIX=/opt/cyclonedds/install \
+    && cmake --build /opt/cyclonedds/build --target install -- -j"$(nproc)" \
+    && rm -rf /opt/cyclonedds/build
+ENV CYCLONEDDS_HOME=/opt/cyclonedds/install
+
+# Ubuntu 24.04 refuses pip into the system environment without this flag; we want the SDK
+# importable by ROS nodes, so a venv would only get in the way.
+RUN git clone --depth 1 ${SDK_REPO} /opt/unitree_sdk2_python \
+    && pip3 install --break-system-packages -e /opt/unitree_sdk2_python
+
+COPY go2_cmd_vel_sdk_bridge.py /opt/bridge/go2_cmd_vel_sdk_bridge.py
+COPY entrypoint_sdk.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh /opt/bridge/go2_cmd_vel_sdk_bridge.py
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

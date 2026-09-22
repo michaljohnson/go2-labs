@@ -41,10 +41,21 @@ else
   git -C unitree_go2_ros2 checkout --quiet "$SIM_REF"
 fi
 
-# A world without the sensor plugin: it renders, and the pod denies /dev/dri, which kills
-# the server. Without sensors the dog walks fine. Then the same world plus a hall to walk in.
+# Three sensor bridges are declared bidirectional (@msg@gz) where every other bridge in the
+# file is one-way ([). Gazebo publishes a cloud, the ROS->GZ half sends it straight back,
+# and it loops: a 10 Hz lidar measured at 1215 Hz, memory climbing until the pod is OOM-killed.
+# One-way is what the other bridges already do.
+launch="$WS/src/unitree_go2_ros2/unitree_go2_sim/launch/unitree_go2_launch.py"
+sed -i -E "s|(/rgb_image@sensor_msgs/msg/Image)@|\1[|; \
+           s|(/unitree_lidar/points@sensor_msgs/msg/PointCloud2)@|\1[|; \
+           s|(/velodyne_points/points@sensor_msgs/msg/PointCloud2)@|\1[|" "$launch"
+
+# lab.sdf is the hall the dog walks in, built from the upstream world with its sensors -
+# they render again since the pod joined the render group (gid 110).
+# headless.sdf, the same world without the sensor plugin, stays as a fallback: build the
+# hall from it with `make_lab_world.py` and no argument if rendering ever breaks again.
 python3 "$HERE/patches/make_headless_world.py"
-python3 "$HERE/patches/make_lab_world.py"
+python3 "$HERE/patches/make_lab_world.py" default
 
 if [ "$1" != "--prebuilt" ]; then
   # --skip-keys: upstream asks for "unitree_applications", but the package is "unitree_application".

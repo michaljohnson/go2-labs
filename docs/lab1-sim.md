@@ -28,7 +28,18 @@ Clones the simulation at a pinned commit into `~/rap/cas/go2_ws`, applies the tw
 installs the dependencies and builds. The workspace lives in `~/rap`, the only storage that
 survives a pod restart. The `apt` packages it installs do not survive, so run it again after a restart.
 
-## Starting it — three terminals
+## Starting it
+
+```bash
+./sim/start.sh
+```
+
+That starts the zenoh router and Gazebo in the background (output in `~/rap/logs/`), waits
+for the controllers, and leaves your terminal driving the dog: `i` / `,` walk, `j` / `l`
+turn, `k` stop. The Gazebo window opens on the pod's desktop. `./sim/start.sh stop` ends it.
+
+To see what it does, or to watch Gazebo's output while it runs, start the pieces yourself
+in three terminals instead:
 
 Every terminal needs ROS, the workspace, zenoh and `DISPLAY`. `sim/env.sh` sets all four:
 

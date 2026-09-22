@@ -31,10 +31,17 @@ RUN git clone --depth 1 -b ${CYCLONEDDS_REF} https://github.com/eclipse-cycloned
     && rm -rf /opt/cyclonedds/build
 ENV CYCLONEDDS_HOME=/opt/cyclonedds/install
 
-# Ubuntu 24.04 refuses pip into the system environment without this flag; we want the SDK
-# importable by ROS nodes, so a venv would only get in the way.
-RUN git clone --depth 1 ${SDK_REPO} /opt/unitree_sdk2_python \
-    && pip3 install --break-system-packages -e /opt/unitree_sdk2_python
+# Ubuntu 24.04 refuses pip into the system environment without --break-system-packages; we
+# want the SDK importable by ROS nodes, so a venv would only get in the way.
+#
+# --no-deps on the SDK itself is deliberate. Its requirements name numpy and opencv-python,
+# and pip would then try to replace Debian's numpy 1.26 with 2.x - which it cannot uninstall
+# ("RECORD file not found"), and which ROS Jazzy's own Python packages are not built for.
+# The system numpy is fine, opencv is only needed for the SDK's camera examples, and the one
+# dependency that matters is installed explicitly below.
+RUN pip3 install --break-system-packages cyclonedds==0.10.2 \
+    && git clone --depth 1 ${SDK_REPO} /opt/unitree_sdk2_python \
+    && pip3 install --break-system-packages --no-deps -e /opt/unitree_sdk2_python
 
 COPY go2_cmd_vel_sdk_bridge.py /opt/bridge/go2_cmd_vel_sdk_bridge.py
 COPY entrypoint_sdk.sh /entrypoint.sh

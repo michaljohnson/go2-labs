@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Write worlds/lab.sdf: the sensor-free world turned into a room to walk the dog in.
+"""Write worlds/lab.sdf: a world turned into a room to walk the dog in.
+
+    python3 make_lab_world.py            # from headless.sdf - no sensors, always works
+    python3 make_lab_world.py default    # from default.sdf  - keeps camera and lidar
 
 The default world is an empty plane, so a walking dog looks like a dog walking on the
 spot. This adds a 12 x 8 m hall with an outer wall, a dividing wall with a doorway, and
 a few crates - somewhere to drive to, get lost in, and later map.
 
 Everything is static and made of boxes, so it costs no dynamics and downloads nothing.
-A Fuel world would look nicer but pulls models per student and brings back the sensor
-plugin the pod can't render.
+A Fuel world would look nicer but pulls models per student on first run.
 
-Built by patching headless.sdf, so the system plugins the launch file expects (physics,
-scene broadcaster, IMU, user commands) stay exactly as upstream has them.
+Built by patching an existing world, so the system plugins the launch file expects
+(physics, scene broadcaster, IMU, user commands) stay exactly as upstream has them.
 """
 import pathlib
+import sys
 
 WORLDS = pathlib.Path.home() / 'rap/cas/go2_ws/src/unitree_go2_ros2/unitree_go2_description/worlds'
 
@@ -54,7 +57,7 @@ MODEL = """
 
 
 def main():
-    src = WORLDS / 'headless.sdf'
+    src = WORLDS / f"{sys.argv[1] if len(sys.argv) > 1 else 'headless'}.sdf"
     dst = WORLDS / 'lab.sdf'
 
     models = "".join(
@@ -65,7 +68,7 @@ def main():
         for name, x, y, sx, sy, sz in BOXES
     )
     dst.write_text(src.read_text().replace('</world>', f'{models}  </world>'))
-    print(f'{dst}: hall with {len(BOXES)} boxes written')
+    print(f'{dst}: hall with {len(BOXES)} boxes, from {src.name}')
 
 
 if __name__ == '__main__':

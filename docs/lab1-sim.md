@@ -63,13 +63,14 @@ Checks: `ros2 control list_controllers` (both `active`), `ros2 topic hz /joint_s
 
 ## Why the patches, and the cluster's quirks
 
-The pod is not a normal desktop, and four things follow from that. `setup.sh` handles the first two.
+The pod is not a normal desktop. Two of these are still live; the other two are history worth
+knowing, because the workarounds are still in the scripts.
 
 | Problem | Why | Our fix |
 |---|---|---|
 | Gazebo crashes at startup (`gz::gui::Application`, Qt) | the window has nowhere to draw: an ssh session has no `DISPLAY`, because the container exports it only for the desktop it starts itself | `export DISPLAY=:0`, which `sim/env.sh` does. Then the launch opens its own window - no server-only patch needed |
-| Server dies with `libEGL ... Permission denied` | the world loads `gz-sim-sensors-system`, which needs `/dev/dri`; the pod denies it | `worlds/headless.sdf`, a copy without that plugin, plus the `disable_*` launch arguments |
-| Service calls hang, e.g. `controller_manager` is visible but never answers | `/dev/shm` is 64 MB in the pod; FastDDS moves data through shared memory | use zenoh: `export RMW_IMPLEMENTATION=rmw_zenoh_cpp` in **all** terminals plus one `rmw_zenohd` router. It ships in the pod image, so there is nothing to install and nothing to lose on a restart. CycloneDDS works too, but has to be apt-installed again every time |
+| Server dies with `libEGL ... Permission denied` | **not a denial.** The GPU devices are there: `card0` is group `video` (44), which we have. Only the render nodes `renderD128/129` are group 110, which `ros` is not in - and only Mesa's GBM path wants those | render through a path that works: `DISPLAY=:0` (GLX, what the Summit XL sim uses here) or `--headless-rendering` (NVIDIA EGL device platform). `worlds/headless.sdf` and the `disable_*` flags remain as a fallback, not a requirement. Adding `supplementalGroups: [110]` to the pod would open the third path too |
+| Service calls hang, e.g. `controller_manager` is visible but never answers | **fixed in the pod.** `/dev/shm` used to be 64 MB, too small for FastDDS's shared-memory transport; it is 2 GB now | nothing to do - the default middleware works. `sim/env.sh` still selects zenoh, which costs nothing (same real-time factor) and is the middleware the real-robot labs use. Drop that line from `env.sh` if you prefer the default |
 | `rosdep` fails on `unitree_applications` | upstream typo — the folder is `unitree_application` | `--skip-keys unitree_applications` (in `setup.sh`) |
 
 ## Open

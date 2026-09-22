@@ -21,7 +21,8 @@ Dry run, nothing reaches the dog:
 
     python3 go2_cmd_vel_sdk_bridge.py --iface eth0 --dry-run
 
-UNTESTED against a real dog. Keep the remote in your hand the first time.
+Tested on a real dog on 2026-09-22, driven by teleop running in a RAP pod. Keep the remote
+in your hand anyway.
 """
 import argparse
 import sys
@@ -51,7 +52,9 @@ class CmdVelSdkBridge(Node):
         self.max_wz = self.declare_parameter('max_wz', 0.6).value    # rad/s turning
         self.timeout = self.declare_parameter('timeout', 1.0).value  # s without /cmd_vel -> stop
 
-        self.create_subscription(Twist, '/cmd_vel', self.on_cmd_vel, 10)
+        # Relative, not '/cmd_vel': with ROS_NAMESPACE=dog1 this becomes /dog1/cmd_vel, so
+        # several dogs can share one domain and one operator node can address them all.
+        self.create_subscription(Twist, 'cmd_vel', self.on_cmd_vel, 10)
         # teleop_twist_keyboard only publishes on key presses, so resend the latest
         # command at 10 Hz for as long as it is fresh - Move is a one-shot command.
         self.create_timer(0.1, self.tick)

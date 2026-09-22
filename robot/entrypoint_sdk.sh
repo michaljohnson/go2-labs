@@ -15,14 +15,21 @@ export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}"
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-5}"
 
 if [ -n "$ROUTER" ]; then
+  # ZENOH_USER/ZENOH_PASSWORD only when the router asks for them - they stay in the
+  # environment, never in the image or the repo.
+  AUTH=""
+  if [ -n "$ZENOH_USER" ]; then
+    AUTH="  transport: { auth: { usrpwd: { user: \"$ZENOH_USER\", password: \"$ZENOH_PASSWORD\" } } },"
+  fi
   cat > /tmp/zenoh_session.json5 <<EOF
 {
   mode: "client",
   connect: { endpoints: ["$ROUTER"] },
+$AUTH
 }
 EOF
   export ZENOH_SESSION_CONFIG_URI=/tmp/zenoh_session.json5
-  echo "zenoh router: $ROUTER (domain $ROS_DOMAIN_ID)"
+  echo "zenoh router: $ROUTER (domain $ROS_DOMAIN_ID)${ZENOH_USER:+, user $ZENOH_USER}"
 else
   echo "no ROUTER set - expecting a local rmw_zenohd (domain $ROS_DOMAIN_ID)"
 fi

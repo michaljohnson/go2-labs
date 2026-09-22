@@ -88,11 +88,15 @@ def main():
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, SystemExit):
-        if isinstance(node, Measure) and node.rtt and len(node.rtt) < node.count:
-            node.report()
+        pass
     finally:
+        # Ctrl+C before the last echo still reports what did come back - and nothing at
+        # all means the echo side never reached us, which is the useful answer.
+        if isinstance(node, Measure):
+            node.report() if node.rtt else print('\nno echoes came back')
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():       # rclpy's own signal handler may already have shut down
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

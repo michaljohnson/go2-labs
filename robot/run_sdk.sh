@@ -8,6 +8,7 @@
 # IFACE     the interface facing the dog (the one with 192.168.123.x)
 # ROUTER    where the zenoh router is; omit for a local one
 # DOMAIN    which robot this is; the simulation is 0, so a dog gets its own (default 5)
+# ZENOH_USER, ZENOH_PASSWORD  credentials, when the router requires them
 # NAMESPACE one dog among several: NAMESPACE=dog1 listens on /dog1/cmd_vel instead of
 #           /cmd_vel. Leave it empty and every dog in the domain follows the same topic -
 #           which is what you want when they should all do the same thing.
@@ -36,4 +37,5 @@ fi
 exec docker run --rm -it --name "$NAME" \
   --network host --ipc host \
   -e ROUTER="$ROUTER" -e ROS_DOMAIN_ID="$DOMAIN" -e ROS_NAMESPACE="$NAMESPACE" \
+  -e ZENOH_USER="$ZENOH_USER" -e ZENOH_PASSWORD="$ZENOH_PASSWORD" \
   "$IMAGE" $CMD

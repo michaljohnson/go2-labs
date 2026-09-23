@@ -2,15 +2,15 @@
 # Run the zenoh bridge on the Jetson - the robot end of the ROS/DDS path.
 #
 #   ROUTER=tcp/1.2.3.4:7448 ./robot/run_bridge.sh
-#   ROUTER=... NAMESPACE=dog1 ./robot/run_bridge.sh
 #
 # ROUTER     where the zenoh router (or the pod's bridge) is. Required.
-# NAMESPACE  scope this dog's topics: dog1 -> /dog1/cmd_vel in the pod, while the robot
-#            side stays plain /cmd_vel. This is the bridge's own -n, not ROS_NAMESPACE, so
-#            nothing on the dog or in any node changes. Tested 23 Sep 2026.
 # IFACE      the port facing the dog; found by its 192.168.123.x address when unset
 # CONFIG     the allow list; without one the bridge routes every topic it discovers,
 #            and the dog publishes ~100 of them including lidar point clouds
+#
+# The dog's name is NOT set here. The bridge's own -n /dog1 does work (tested 23 Sep 2026),
+# but the ROS nodes carry the namespace themselves now, as a -r __ns:= remap, so one
+# mechanism covers this path and the SDK one alike. Setting both gives /dog1/dog1/...
 #
 # The interface is not a detail: CycloneDDS discovery is per-interface, so a bridge bound
 # to the wifi never sees the dog's container on the same host. It is enP8p1s0 on the lab
@@ -48,10 +48,8 @@ if [ -f "$CONFIG" ]; then
 else
   echo "run_bridge.sh: no $CONFIG - the bridge will route EVERY topic it finds" >&2
 fi
-# The bridge wants a leading slash; accept dog1 or /dog1 and normalise.
-[ -n "$NAMESPACE" ] && ARGS+=(-n "/${NAMESPACE#/}")
 
-echo "bridge: iface $IFACE, domain $DOMAIN, router $ROUTER${NAMESPACE:+, namespace $NAMESPACE}"
+echo "bridge: iface $IFACE, domain $DOMAIN, router $ROUTER"
 
 exec docker run --rm -it --name "$NAME" --network host \
   -e ROS_DOMAIN_ID="$DOMAIN" -e ROS_DISTRO=humble \

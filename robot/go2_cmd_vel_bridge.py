@@ -38,7 +38,10 @@ class CmdVelBridge(Node):
         self.timeout = self.declare_parameter('timeout', 1.0).value  # s without /cmd_vel -> stop
 
         self.pub = self.create_publisher(Request, '/api/sport/request', 10)
-        self.create_subscription(Twist, '/cmd_vel', self.on_cmd_vel, 10)
+        # Relative, so -r __ns:=/dog1 makes this /dog1/cmd_vel. The remap is the documented
+        # ROS 2 way; an earlier attempt used ROS_NAMESPACE and never produced a namespaced
+        # topic, though a stale container muddied that test.
+        self.create_subscription(Twist, 'cmd_vel', self.on_cmd_vel, 10)
         # teleop_twist_keyboard only publishes on key presses, so resend the
         # latest command at 10 Hz for as long as it is fresh.
         self.create_timer(0.1, self.tick)

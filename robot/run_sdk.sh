@@ -9,9 +9,12 @@
 # ROUTER    where the zenoh router is; omit for a local one
 # DOMAIN    which robot this is; the simulation is 0, so a dog gets its own (default 5)
 # ZENOH_USER, ZENOH_PASSWORD  credentials, when the router requires them
-# NAMESPACE one dog among several: NAMESPACE=dog1 listens on /dog1/cmd_vel instead of
-#           /cmd_vel. Leave it empty and every dog in the domain follows the same topic -
-#           which is what you want when they should all do the same thing.
+# NAMESPACE one dog among several: dog1 listens on /dog1/cmd_vel instead of /cmd_vel.
+#           Applied as a ROS remap, -r __ns:=/dog1 - the documented ROS 2 mechanism. It was
+#           passed as ROS_NAMESPACE before and never produced a namespaced topic, so the
+#           option had looked like it worked since 22 Sep without ever being tested.
+#           Taken from /etc/default/go2-dog when unset, so the identity belongs to the
+#           machine: echo 'NAMESPACE=dog1' | sudo tee /etc/default/go2-dog
 #
 # --network host: the SDK needs the dog's network, and zenoh needs to reach the router.
 # The working Humble image (cas-go2-robot) is untouched; both can exist side by side, but
@@ -29,6 +32,9 @@ IFACE="${IFACE:-$(ip -o -4 addr show | awk '$4 ~ /^192\.168\.123\./ {print $2; e
 DOMAIN="${DOMAIN:-5}"
 NAME="${NAME:-go2-sdk}"
 NAMESPACE="${NAMESPACE:-}"
+if [ -z "$NAMESPACE" ] && [ -f /etc/default/go2-dog ]; then . /etc/default/go2-dog; fi
+NS_ARG=""
+[ -n "$NAMESPACE" ] && NS_ARG="--ros-args -r __ns:=/${NAMESPACE#/}"
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$REPO/bags"
@@ -43,7 +49,7 @@ if [ "$1" = "--dry-run" ] || [ "$1" = "run" ]; then
     echo "  (set IFACE to force a port)" >&2
     exit 1
   fi
-  CMD="python3 /opt/bridge/go2_cmd_vel_sdk_bridge.py --iface $IFACE $EXTRA"
+  CMD="python3 /opt/bridge/go2_cmd_vel_sdk_bridge.py --iface $IFACE $EXTRA $NS_ARG"
 else
   CMD="${*:-bash}"
 fi
@@ -51,6 +57,6 @@ fi
 exec docker run --rm -it --name "$NAME" \
   --network host --ipc host \
   -v "$REPO/bags":/bags -v "$REPO/tools":/tools \
-  -e ROUTER="$ROUTER" -e ROS_DOMAIN_ID="$DOMAIN" -e ROS_NAMESPACE="$NAMESPACE" \
+  -e ROUTER="$ROUTER" -e ROS_DOMAIN_ID="$DOMAIN" \
   -e ZENOH_USER="$ZENOH_USER" -e ZENOH_PASSWORD="$ZENOH_PASSWORD" \
   "$IMAGE" $CMD

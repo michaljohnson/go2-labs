@@ -23,8 +23,14 @@
   plugins: {
     ros2dds: {
       allow: {
-        publishers: ["/cmd_vel", "/lf/sportmodestate", "/utlidar/robot_odom"],
-        subscribers: ["/cmd_vel", "/lf/sportmodestate", "/utlidar/robot_odom"],
+        // The optional (/name)? prefix lets one config serve every dog: it matches both
+        // /cmd_vel and /dog1/cmd_vel, so ROS_NAMESPACE decides the addressing, not this file.
+        //
+        // The dog's own topics are deliberately NOT here. They cannot cross the bridge at
+        // all - the dog announces no ROS nodes - so go2_telemetry.py republishes what the
+        // operator needs as /odom and /mode, in standard types the pod can decode.
+        publishers: ["(/[a-z0-9_]+)?/cmd_vel", "(/[a-z0-9_]+)?/odom", "(/[a-z0-9_]+)?/mode"],
+        subscribers: ["(/[a-z0-9_]+)?/cmd_vel", "(/[a-z0-9_]+)?/odom", "(/[a-z0-9_]+)?/mode"],
       },
     },
   },

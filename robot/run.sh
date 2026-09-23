@@ -12,8 +12,25 @@
 # -v bags: the container is --rm, so anything written inside is gone when it stops.
 #   ./bags on the Jetson appears as /bags inside - rosbag files survive there.
 mkdir -p "$(dirname "$0")/../bags"
-docker run --rm -it --name go2 \
+
+# Only the long-running bridge claims the name "go2", so that `docker exec -it go2 ...`
+# reaches it. A one-off question - ./run.sh ros2 topic list - gets an anonymous container
+# instead of colliding with the bridge that is currently driving the dog.
+NAMED=(); CMD=("$@")
+if [ $# -eq 0 ]; then
+  NAMED=(--name go2)
+  # The image also carries this script, but running the mounted copy means a fix ships by
+  # scp instead of an image rebuild on every Jetson.
+  CMD=(python3 /robot/go2_cmd_vel_bridge.py)
+fi
+
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+
+# NAMESPACE=dog1 -> /dog1/cmd_vel, /dog1/odom, /dog1/mode. Leave it empty and this dog
+# answers to plain /cmd_vel, which is what you want when there is only one.
+docker run --rm -it "${NAMED[@]}" \
   --network host --ipc host \
-  -v "$(cd "$(dirname "$0")/.." && pwd)/bags":/bags \
+  -e ROS_NAMESPACE="$NAMESPACE" \
+  -v "$REPO/bags":/bags -v "$REPO/robot":/robot \
   -w /bags \
-  cas-go2-robot "$@"
+  cas-go2-robot "${CMD[@]}"

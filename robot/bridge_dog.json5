@@ -1,0 +1,31 @@
+// Config for zenoh-bridge-ros2dds on a dog's Jetson.
+//
+//   docker run --rm -it --network host --name zbridge \
+//     -e ROS_DOMAIN_ID=0 -e ROS_DISTRO=humble \
+//     -v $PWD/robot/bridge_dog.json5:/c.json5 \
+//     eclipse/zenoh-bridge-ros2dds:1.10.1 client -c /c.json5 -e tcp/<router>:7448
+//
+// Without an allow list the bridge routes everything it discovers. On a real dog that
+// includes /utlidar/cloud - a lidar point cloud over the wifi, which is both useless to
+// the operator and enough to swamp the link the commands travel on.
+//
+// What crosses, and why - the names are the real dog's, checked on 23 Sep 2026:
+//   /cmd_vel              in  - the only thing the operator sends
+//   /lf/sportmodestate    out - the dog's mode (1 = balance stand, 5 = lie, 7 = damping), the
+//                               one telemetry the safety checks in lab2-real.md read. The
+//                               low-frequency variant: same fields, a fraction of the wifi.
+//   /utlidar/robot_odom   out - the dog's own odometry. Note there is NO /odom topic on a real
+//                               Go2, so the record command in lab2-real.md is wrong.
+// Everything else stays on the dog. That matters more here than it sounds: the dog publishes
+// /utlidar/cloud, /utlidar/voxel_map, /frontvideostream and ~100 other topics, and bridging
+// them over the wifi would swamp the link the commands travel on.
+{
+  plugins: {
+    ros2dds: {
+      allow: {
+        publishers: ["/cmd_vel", "/lf/sportmodestate", "/utlidar/robot_odom"],
+        subscribers: ["/cmd_vel", "/lf/sportmodestate", "/utlidar/robot_odom"],
+      },
+    },
+  },
+}

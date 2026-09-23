@@ -12,8 +12,10 @@
 source /opt/ros/jazzy/setup.bash
 source "$HOME/rap/cas/go2_ws/install/setup.bash" 2>/dev/null
 
-# The pod gives /dev/shm only 64 MB, which hangs the default middleware's service
-# calls. zenoh ships in the image and doesn't use shared memory that way.
+# zenoh, not the default middleware. This began as a workaround - /dev/shm was 64 MB and
+# CycloneDDS service calls to controller_manager hung. /dev/shm was raised to 2 GB (measured 23 Sep 2026),
+# so that reason is gone; zenoh stays because the sim and the real dogs share one router
+# and one domain scheme. CycloneDDS is worth re-testing now, it is no longer ruled out.
 export RMW_IMPLEMENTATION=rmw_zenoh_cpp
 
 # Windows (Gazebo, RViz) draw on the pod's desktop, which you watch in the browser.

@@ -50,6 +50,12 @@ sed -i -E "s|(/rgb_image@sensor_msgs/msg/Image)@|\1[|; \
            s|(/unitree_lidar/points@sensor_msgs/msg/PointCloud2)@|\1[|; \
            s|(/velodyne_points/points@sensor_msgs/msg/PointCloud2)@|\1[|" "$launch"
 
+# RViz's config opens on Fixed Frame "map", and nothing here publishes a map frame - there
+# is no SLAM and no Nav2. Every display then errors and the window stays empty, which reads
+# as "RViz is broken" rather than "wrong frame". odom exists as soon as the controllers do.
+rviz_cfg="$WS/src/unitree_go2_ros2/unitree_go2_sim/rviz/rviz.rviz"
+sed -i -E "s|^([[:space:]]*)Fixed Frame: map$|\1Fixed Frame: odom|" "$rviz_cfg"
+
 # lab.sdf is the hall the dog walks in, built from the upstream world with its sensors -
 # they render again since the pod joined the render group (gid 110).
 # headless.sdf, the same world without the sensor plugin, stays as a fallback: build the

@@ -13,10 +13,32 @@ doesn't matter.
 
 ## Safety, before anything moves
 
-- The dog **stands** in sport mode. Lying down or in damping it ignores `Move`.
-  Check: `ros2 topic echo /sportmodestate --once | grep -E '^mode'` (1 = balance stand, 5 = lie down, 7 = damping)
+- **Check the mode before you wonder why nothing moves.** The dog only walks from balance
+  stand; in every other mode it ignores `Move` completely and looks broken when it is not.
+  From the pod, where `go2_telemetry.py` republishes it as a plain `std_msgs/UInt8`:
+
+  ```bash
+  ros2 topic echo /dog1/mode        # leave it running - it changes as you press the remote
+  ```
+
+  | value | meaning | walks? |
+  |---|---|---|
+  | 0 | idle | no — seen 23 Sep 2026 after a remote stop |
+  | 1 | balance stand | **yes** |
+  | 5 | lie down | no |
+  | 7 | damping | no — seen 23 Sep 2026 after L2+B |
+
+  `L2+B` on the remote drops the dog into damping, `L2+A` stands it back up. 0 and 7 were
+  observed in normal use; 5 comes from Unitree's documentation and has not been confirmed
+  here. If you meet a number that is not in this table, add it.
 - **Remote control in your hand.** L2+B = damping, the dog lies down softly. The phone app must not
   be steering at the same time
+- **Silence is not a stop.** Sport mode keeps executing the last velocity until something tells
+  it otherwise. The bridge sends `StopMove` a second after `/cmd_vel` goes quiet, on a zero
+  Twist, and on Ctrl+C - but only while the bridge is alive. If its container dies, its
+  terminal closes or the wifi drops mid-walk, nothing sends the stop and **the dog keeps
+  going**. On 23 Sep 2026 two dogs carried on after the publisher was stopped and the remotes
+  were what halted them. Never drive without one in reach.
 - 2–3 m clear around the dog
 - The bridge caps speed at 0.3 m/s forward, 0.2 m/s sideways, 0.6 rad/s turning
   (raise with `--ros-args -p max_vx:=0.5`)
@@ -62,7 +84,7 @@ from the keyboard, from a bag, or from your own node — the dog walks either wa
 1. Start the bridge and teleop as above, and drive a short route: a few metres, one turn.
 2. Record while you drive, in a third terminal:
    ```bash
-   docker exec -it go2 /entrypoint.sh ros2 bag record -o my_route /cmd_vel /odom /sportmodestate
+   docker exec -it go2 /entrypoint.sh ros2 bag record -o my_route /cmd_vel /utlidar/robot_odom /sportmodestate
    ```
    Only these three topics — with the lidar the bag grows to gigabytes. Bags land in `bags/` in the
    repo folder on the Jetson, which `run.sh` mounts into the container; the container itself is
@@ -76,7 +98,8 @@ from the keyboard, from a bag, or from your own node — the dog walks either wa
 **Silver — compare**
 
 5. Mark where the dog ends up, driven and replayed.
-6. From the bag, plot the commanded speed (`/cmd_vel`) against the measured one (`/odom`),
+6. From the bag, plot the commanded speed (`/cmd_vel`) against the measured one
+   (`/utlidar/robot_odom` - a real Go2 has no `/odom`, unlike the simulation),
    e.g. in Lichtblick (see [`../viz/README.md`](../viz/README.md)).
 7. **For the report:** why does the dog not end up in the same place? What would it take for it to?
 

@@ -35,10 +35,21 @@ WORLD="$WORLDS/${1:-lab}.sdf"
 [ -f "$WORLD" ] || WORLD="$WORLDS/headless.sdf"
 mkdir -p "$LOGS"
 
-# The router first: nodes that start before it do not find each other.
+# The router first: nodes that start before it do not find each other. Waiting a fixed
+# three seconds was not enough - and worse, it hid a router that had died on startup
+# (port 7447 already taken), leaving the spawners to fail with "Unable to connect to a
+# Zenoh router" while this script blamed Gazebo. So wait for the port, then say so.
 if ! pgrep -f rmw_zenohd >/dev/null; then
   nohup ros2 run rmw_zenoh_cpp rmw_zenohd > "$LOGS/router.log" 2>&1 &
-  sleep 3
+fi
+for i in $(seq 15); do
+  (exec 3<>/dev/tcp/127.0.0.1/7447) 2>/dev/null && { exec 3<&-; break; }
+  sleep 1
+done
+if ! (exec 3<>/dev/tcp/127.0.0.1/7447) 2>/dev/null; then
+  echo "The zenoh router is not listening on 7447. Last lines of $LOGS/router.log:"
+  tail -15 "$LOGS/router.log"
+  exit 1
 fi
 
 if ! pgrep -f unitree_go2_launch >/dev/null; then

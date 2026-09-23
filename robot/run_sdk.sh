@@ -39,7 +39,8 @@ if [ "$1" = "--dry-run" ] || [ "$1" = "run" ]; then
   EXTRA=""
   [ "$1" = "--dry-run" ] && EXTRA="--dry-run"
   if [ -z "$IFACE" ]; then
-    echo "run_sdk.sh: no 192.168.123.x address - is the dog's cable in? (set IFACE to force a port)" >&2
+    echo "run_sdk.sh: no 192.168.123.x address - is the dog's cable in?" >&2
+    echo "  (set IFACE to force a port)" >&2
     exit 1
   fi
   CMD="python3 /opt/bridge/go2_cmd_vel_sdk_bridge.py --iface $IFACE $EXTRA"

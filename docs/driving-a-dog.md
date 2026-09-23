@@ -8,8 +8,8 @@ that choice is the operator's — the student's node is identical either way.
 |---|---|---|
 | Pod middleware | `rmw_cyclonedds_cpp` | `rmw_zenoh_cpp` |
 | On the Jetson | `cas-go2-robot` + `zenoh-bridge-ros2dds` | `cas-go2-sdk` |
-| Processes on the Jetson | 2 | 1 |
-| Port into the pod | 7448 | 7447 |
+| Containers on the Jetson | 3 — bridge, dog bridge, telemetry | 1 — all of it in one process |
+| Reaches the cluster via | the `rap-0` zenoh router, `tcp/<router-address>:32447` | a zenoh router too; whether the `rap-0` one serves `rmw_zenoh` clients is untested |
 | Needs installing in the pod | `ros-jazzy-rmw-cyclonedds-cpp`, after every restart | nothing |
 | Proven on a real dog | 23 Sep 2026 | 22 Sep 2026 |
 
@@ -25,47 +25,66 @@ sudo iw dev wlP1p1s0 set power_save off
 # the dog: standing, sport mode, remote in your hand, 2-3 m clear
 ```
 
-The Jetsons reach the pod through a **NodePort on the port that path uses**. Until that
-Service exists, the stand-in is a port-forward on the teaching laptop, which means the laptop
-must stay awake for the whole session and takes every dog down with it if it sleeps:
+Both ends dial **out** to a standalone zenoh router in the cluster. Neither the pod nor the
+Jetson can accept an incoming connection - the pod has no external address, and the Jetson is
+behind the lab NAT (it leaves as <lab-nat-address>) - so a router both can reach is the only place
+they can meet. Verified 23 Sep 2026, with a dog walking.
+
+| from | address |
+|---|---|
+| a pod, inside the cluster | `tcp/zenoh-router.rap-0.svc.cluster.local:7447` |
+| a Jetson, from the lab wifi | `tcp/<router-address>:32447` |
 
 ```bash
-# laptop - temporary stand-in for the NodePort
-kubectl -n rap-9 port-forward <pod> --address 0.0.0.0 7448:7448    # path A
-kubectl -n rap-9 port-forward <pod> --address 0.0.0.0 7447:7447    # path B
+# pod - bridge A, a client of the router, listening for nothing
+cd ~/rap
+ROS_DOMAIN_ID=5 ./zenoh-bridge-ros2dds client \
+  -e tcp/zenoh-router.rap-0.svc.cluster.local:7447 --no-multicast-scouting
 ```
 
-`<router>` below means the NodePort address (`robopaas.dev:<nodePort>`) or, with the
-stand-in, the laptop's address on the lab wifi — `192.168.0.135`.
+The router currently accepts unauthenticated sessions, so anything that can route to
+<router-address> can publish `/cmd_vel` to a dog. Before students and four robots it should
+want `usrpwd` credentials - the scripts already pass `ZENOH_USER`/`ZENOH_PASSWORD` through.
+
+A `kubectl port-forward --address 0.0.0.0 7448:7448` on the teaching laptop works as a
+stand-in when the router is unavailable, but then the laptop must stay awake for the whole
+session and takes every dog down with it if it sleeps.
 
 ## Path A — ROS/DDS over a zenoh bridge
 
 **Pod, terminal 1 — bridge A**
 ```bash
 cd ~/rap
-ROS_DOMAIN_ID=5 RUST_LOG=info ./zenoh-bridge-ros2dds -l tcp/0.0.0.0:7448 --no-multicast-scouting
+ROS_DOMAIN_ID=5 RUST_LOG=info ./zenoh-bridge-ros2dds client \
+  -e tcp/zenoh-router.rap-0.svc.cluster.local:7447 --no-multicast-scouting
 ```
-Expect the `v1.10.1` banner. Nothing else until a peer connects.
+`client`, not the default `router` mode: it listens for nothing and dials out. Expect the
+`v1.10.1` banner, then `New ROS 2 bridge detected` once a Jetson joins the same router.
 
 **Jetson, terminal 1 — bridge B**
 ```bash
-docker rm -f zbridge
-docker run --rm -it --network host --name zbridge \
-  -e ROS_DOMAIN_ID=0 -e ROS_DISTRO=humble \
-  -e CYCLONEDDS_URI='<CycloneDDS><Domain><General><Interfaces><NetworkInterface name="enP8p1s0" priority="default" multicast="default"/></Interfaces></General></Domain></CycloneDDS>' \
-  -v ~/go2-labs/robot/bridge_dog.json5:/c.json5 \
-  eclipse/zenoh-bridge-ros2dds:1.10.1 \
-  client -c /c.json5 -e tcp/<router>:7448 --no-multicast-scouting
+cd ~/go2-labs
+ROUTER=tcp/<router-address>:32447 NAMESPACE=dog1 ./robot/run_bridge.sh
 ```
-Expect `allowance: Some(...)` — proof it read the config — and `New ROS 2 bridge detected`.
-`CYCLONEDDS_URI` pins the bridge to the same port the dog is on; without it the bridge picks
-the wifi instead and never sees the Humble container, on the same host, on the same domain.
+`run_bridge.sh` finds the dog-facing port by its 192.168.123.x address and pins CycloneDDS to
+it. That pin is not a detail: DDS discovery is per-interface, so a bridge bound to the wifi
+never sees the Humble container on the same host, on the same domain. The port is `enP8p1s0`
+on the lab Jetsons and `enx...` on one with a USB adapter - detected, not typed.
+
+Expect `allowance: Some(...)`, proof it read the allow list, then `New ROS 2 bridge detected`.
 
 **Jetson, terminal 2 — the dog bridge**
 ```bash
 cd ~/go2-labs && ./robot/run.sh
 ```
 Ctrl+C here stops the dog, then the container.
+
+**Jetson, terminal 3 — telemetry back** (see [Telemetry back from the dog](#telemetry-back-from-the-dog))
+```bash
+docker run --rm -it --network host --ipc host \
+  -v ~/go2-labs/robot:/robot -e ROS_DOMAIN_ID=0 \
+  cas-go2-robot /entrypoint.sh python3 /robot/go2_telemetry.py
+```
 
 **Pod, terminal 2 — check before driving**
 ```bash
@@ -94,6 +113,9 @@ Hold `i` to walk, `k` stops at once.
 source ~/rap/cas/go2-labs/sim/env.sh
 ros2 run rmw_zenoh_cpp rmw_zenohd
 ```
+UNTESTED: `rmw_zenoh` clients need a router, and the standalone one in `rap-0` speaks the
+same protocol - so this path may be able to use it too, and skip the local router. Worth
+trying before assuming each pod needs its own.
 
 **Jetson, terminal 1 — the SDK bridge, dry first**
 ```bash
@@ -116,11 +138,61 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 `k` in teleop is the fast stop - the dog gets an explicit stop command. Ctrl+C in the bridge
 is the hard stop: it sends `StopMove` and exits. Both work; `k` is the one to teach.
 
-## What neither path gives you yet
+## Several dogs at once
 
-The dog's own telemetry does not reach the pod. `zenoh-plugin-ros2dds` bridges what it finds
+`NAMESPACE=dog1` on `run_bridge.sh` passes the bridge's own `-n /dog1`. The bridge prepends
+it to everything it routes, so the pod sees `/dog1/cmd_vel` while the robot side stays plain
+`/cmd_vel` - nothing on the dog, in any container or in any node changes. Tested 23 Sep 2026.
+Each Jetson gets its own, matching its hostname: `orin-nano-1` runs `NAMESPACE=dog1`.
+
+The operator then addresses one dog:
+
+```bash
+ROS_NAMESPACE=dog1 ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+**This is addressing, not security.** Nothing stops anyone on that router publishing to
+`/dog3/cmd_vel`. Enforcement belongs on the router: zenoh has access control built in
+(`access_control` in its config, `default_permission: Deny`) and `usrpwd` authentication,
+both currently off. A per-group user restricted to `dogN/**` is the only thing that actually
+stops one group driving another's robot - a ROS namespace or domain never will, because the
+bridge strips the DDS domain out of the key on the way through.
+
+## Telemetry back from the dog
+
+The dog's own topics never cross a bridge: `zenoh-bridge-ros2dds` routes what it finds
 through `ros_discovery_info`, and the dog's firmware speaks DDS without running `rcl`, so it
-announces no ROS nodes - verified on 23 Sep 2026, when only `/cmd_vel` crossed and
-`/lf/sportmodestate` did not. Getting `/sportmodestate` or odometry into the pod needs a
-small node on the Jetson that subscribes to the dog and republishes as a real ROS node.
-Path B needs the same thing, written into the SDK bridge instead.
+announces no ROS nodes. Verified 23 Sep 2026 - only `/cmd_vel` crossed, `/lf/sportmodestate`
+did not, however generous the allow list.
+
+`robot/go2_telemetry.py` fixes that. It is a real ROS node, so what it publishes is
+discovered and routed like anything else, and it translates on the way:
+
+| the dog publishes | it republishes | type |
+|---|---|---|
+| `/utlidar/robot_odom` | `odom` | `nav_msgs/Odometry` - unchanged |
+| `/lf/sportmodestate` | `mode` | `std_msgs/UInt8` - 0 idle, 1 balance stand, 5 lie, 7 damping |
+
+Both are standard types, so the pod decodes them with nothing installed. Relative names, so
+`ROS_NAMESPACE=dog1` gives `/dog1/odom` and `/dog1/mode`.
+
+**Jetson, terminal 3**
+```bash
+docker run --rm -it --network host --ipc host \
+  -v ~/go2-labs/robot:/robot -e ROS_DOMAIN_ID=0 \
+  cas-go2-robot /entrypoint.sh python3 /robot/go2_telemetry.py
+```
+
+**Pod** - `ros2 topic echo /mode --once` before driving is the safety check `lab2-real.md`
+asks for, and it now works from the operator's seat rather than only on the robot.
+
+The SDK path has no equivalent yet: its bridge publishes nothing back, so the same
+translation would have to be written into `go2_cmd_vel_sdk_bridge.py`.
+
+## Known problem: the dog's clock
+
+`/odom` carries a stamp from the dog, and on 23 Sep 2026 the dog's clock was ~38 minutes
+behind the Jetson's. Record `/cmd_vel` (stamped in the pod) and `/odom` (stamped by the dog)
+into one bag and the two traces sit 38 minutes apart - which looks like a student's bug and
+is not. Either set the dog's clock, or restamp in `go2_telemetry.py` with the Jetson's, and
+say in the lab text which clock the numbers come from.

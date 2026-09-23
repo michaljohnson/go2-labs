@@ -14,6 +14,8 @@ That is the whole point of the setup: `geometry_msgs/Twist` on `/cmd_vel`, nothi
 |---|---|
 | `docs/lab1-sim.md` | lab 1: the Go2 in Gazebo on RAP — setup, starting it, what to watch out for |
 | `docs/lab2-real.md` | lab 2: the real dog — the Jetson, the bridge, safety |
+| `docs/driving-a-dog.md` | the two ways a pod reaches a real dog, terminal by terminal |
+| `docs/jetsons.md` | which Jetson drives which dog, and how to set one up |
 | `sim/` | `setup.sh` builds the simulation workspace; patches we need on the cluster |
 | `robot/` | robot side: `/cmd_vel` bridge, Docker image, start scripts |
 | `viz/` | seeing it from your own laptop (Lichtblick / Foxglove) |

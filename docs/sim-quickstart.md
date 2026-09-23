@@ -61,6 +61,24 @@ Optional, and not free: it costs about half a CPU core and half a gigabyte, and 
 no GPU path for it, so it renders on the CPU and looks rough over the browser desktop. If the
 simulation feels slow, close RViz first.
 
+## When ros2 cannot find something that is obviously running
+
+Check the terminal before you suspect the simulation:
+
+```bash
+echo "$RMW_IMPLEMENTATION / ${ROS_DOMAIN_ID:-0}"     # want rmw_zenoh_cpp / 0
+```
+
+The simulation is zenoh on domain 0. The real dogs are CycloneDDS on domain 5. A terminal
+that has been used for the dogs keeps both settings, and `env.sh` only fixes the first -
+`ROS_DOMAIN_ID` survives sourcing it. On the wrong domain every command answers politely
+with nothing: no topics, no controllers, no error.
+
+```bash
+unset ROS_DOMAIN_ID ZENOH_SESSION_CONFIG_URI
+source ~/rap/cas/go2-labs/sim/env.sh
+```
+
 ## Checking rather than guessing
 
 ```bash

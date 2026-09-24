@@ -12,11 +12,9 @@
 source /opt/ros/jazzy/setup.bash
 source "$HOME/rap/cas/go2_ws/install/setup.bash" 2>/dev/null
 
-# zenoh, not the default middleware. This began as a workaround - /dev/shm was 64 MB and
-# CycloneDDS service calls to controller_manager hung. It measured 2 GB on 23 Sep 2026, so
-# that reason is gone; zenoh stays because the sim and the real dogs share one router and
-# one domain scheme. CycloneDDS is worth re-testing, it is no longer ruled out.
-export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+
+# To go back, for one terminal or by putting the line here again:
+#   export RMW_IMPLEMENTATION=rmw_zenoh_cpp   # needs `ros2 run rmw_zenoh_cpp rmw_zenohd`
 
 # Windows (Gazebo, RViz) draw on the pod's desktop, which you watch in the browser.
 # An ssh session has no DISPLAY of its own; a terminal inside the desktop already has this.

@@ -1,31 +1,21 @@
 # Starting the simulation yourself
 
-Four terminals in your pod's desktop. Every one of them starts with the same line, because a
+Three terminals in your pod's desktop. Every one of them starts with the same line, because a
 fresh terminal has nothing loaded - `~/.bashrc` does not survive a pod restart.
 
 ```bash
 source ~/rap/cas/go2-labs/sim/env.sh
 ```
 
-That sets ROS, the simulation workspace, `RMW_IMPLEMENTATION` and `DISPLAY=:0`. Without it
-`ros2` is not even on the path.
+That sets ROS, the simulation workspace and `DISPLAY=:0`. Without it `ros2` is not even on
+the path. It does not select a middleware - the simulation runs on the ROS default, so
+`ros2 topic list` answers in any terminal with ROS sourced.
 
 `./sim/start.sh` does all of the below in one command and is what to use when you just want
 the simulation running. Use this page when you want to see the pieces, or when something is
 wrong and you need to watch each one come up.
 
-## 1. The zenoh router — first, and on its own
-
-```bash
-source ~/rap/cas/go2-labs/sim/env.sh
-ros2 run rmw_zenoh_cpp rmw_zenohd
-```
-
-Nodes that start before the router do not find each other, and the failure looks like Gazebo
-being broken: the controllers report `Unable to connect to a Zenoh router` and the simulation
-dies. Start this one and leave it.
-
-## 2. Gazebo and the dog
+## 1. Gazebo and the dog
 
 ```bash
 source ~/rap/cas/go2-labs/sim/env.sh
@@ -37,7 +27,7 @@ Give it about forty seconds: Gazebo has to start, and the controllers have to be
 activated before the dog reacts to anything. The window opens on the pod's desktop - the one
 you are watching in the browser - not in this terminal.
 
-## 3. Drive it
+## 2. Drive it
 
 ```bash
 source ~/rap/cas/go2-labs/sim/env.sh
@@ -50,7 +40,7 @@ presses, not continuously.
 This is the whole point of the lab - your own node publishes the same `geometry_msgs/Twist`
 on `/cmd_vel`, and the simulated dog cannot tell the difference. Nor can the real one.
 
-## 4. RViz, if you want it
+## 3. RViz, if you want it
 
 ```bash
 source ~/rap/cas/go2-labs/sim/env.sh
@@ -66,16 +56,16 @@ simulation feels slow, close RViz first.
 Check the terminal before you suspect the simulation:
 
 ```bash
-echo "$RMW_IMPLEMENTATION / ${ROS_DOMAIN_ID:-0}"     # want rmw_zenoh_cpp / 0
+echo "domain=${ROS_DOMAIN_ID:-0}  rmw=${RMW_IMPLEMENTATION:-default}"
 ```
 
-The simulation is zenoh on domain 0. The real dogs are CycloneDDS on domain 5. A terminal
-that has been used for the dogs keeps both settings, and `env.sh` only fixes the first -
-`ROS_DOMAIN_ID` survives sourcing it. On the wrong domain every command answers politely
-with nothing: no topics, no controllers, no error.
+The simulation is on the default middleware and domain 0. The real dogs are CycloneDDS on
+domain 5, and a terminal used for them keeps both settings - `env.sh` will not clear them.
+On the wrong domain every command answers politely with nothing: no topics, no controllers,
+no error.
 
 ```bash
-unset ROS_DOMAIN_ID ZENOH_SESSION_CONFIG_URI
+unset ROS_DOMAIN_ID RMW_IMPLEMENTATION ZENOH_SESSION_CONFIG_URI
 source ~/rap/cas/go2-labs/sim/env.sh
 ```
 
@@ -93,8 +83,8 @@ what was true ten minutes ago.
 
 ## Stopping
 
-`Ctrl+C` each terminal, router last. Or:
+`Ctrl+C` each terminal. Or, which also clears the nodes the launch leaves behind:
 
 ```bash
-pkill -f unitree_go2_launch; pkill -f "gz sim"; pkill -f rmw_zenohd
+cd ~/rap/cas/go2-labs && ./sim/start.sh stop
 ```

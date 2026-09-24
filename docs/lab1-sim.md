@@ -34,37 +34,40 @@ survives a pod restart. The `apt` packages it installs do not survive, so run it
 ./sim/start.sh
 ```
 
-That starts the zenoh router and Gazebo in the background (output in `~/rap/logs/`), waits
-for the controllers, and leaves your terminal driving the dog: `i` / `,` walk, `j` / `l`
-turn, `k` stop. The Gazebo window opens on the pod's desktop. `./sim/start.sh stop` ends it.
+That starts Gazebo in the background (output in `~/rap/logs/`), waits for the controllers,
+and leaves your terminal driving the dog: `i` / `,` walk, `j` / `l` turn, `k` stop. The
+Gazebo window opens on the pod's desktop. `./sim/start.sh stop` ends it.
 
 To see what it does, or to watch Gazebo's output while it runs, start the pieces yourself
-in three terminals instead:
+in two terminals instead:
 
-Every terminal needs ROS, the workspace, zenoh and `DISPLAY`. `sim/env.sh` sets all four:
+Every terminal needs ROS, the workspace and `DISPLAY`. `sim/env.sh` sets all three. It does
+not select a middleware: the simulation runs on the ROS default, so `ros2 topic list` works
+in any terminal that has ROS sourced at all.
 
 ```bash
 source ~/rap/cas/go2-labs/sim/env.sh
 ```
 
-Add it to `~/.bashrc` once and new terminals are ready by themselves:
+Add it to `~/.bashrc` once and new terminals are ready by themselves - though `~/.bashrc`
+does not survive a pod restart, so `./sim/resume.sh` puts the line back:
 
 ```bash
 echo 'source ~/rap/cas/go2-labs/sim/env.sh' >> ~/.bashrc
 ```
 
 ```bash
-# 1  zenoh router - start it first, leave it running
-ros2 run rmw_zenoh_cpp rmw_zenohd
-
-# 2  simulation - the Gazebo window opens on the pod's desktop, watch it in the browser
+# 1  simulation - the Gazebo window opens on the pod's desktop, watch it in the browser
 ros2 launch unitree_go2_sim unitree_go2_launch.py rviz:=false \
-  world:=$HOME/rap/cas/go2_ws/src/unitree_go2_ros2/unitree_go2_description/worlds/lab.sdf \
-  disable_camera:=true disable_d455:=true disable_lidar_l1:=true disable_velodyne_lidar:=true
+  world:=$HOME/rap/cas/go2_ws/src/unitree_go2_ros2/unitree_go2_description/worlds/lab.sdf
 
-# 3  drive it: hold i / , to walk, j / l to turn, k to stop
+# 2  drive it: hold i / , to walk, j / l to turn, k to stop
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
+
+The sensors are on: the cameras and both lidars publish, and you can see them in RViz. They
+used to be disabled with `disable_camera:=true` and friends, back when the pod could not
+render them.
 
 `lab.sdf` is a hall with walls, a doorway and crates; `headless.sdf` is the bare plane.
 RViz is optional: `rviz2 -d $HOME/rap/cas/go2_ws/src/unitree_go2_ros2/unitree_go2_sim/rviz/rviz.rviz`.
@@ -81,7 +84,7 @@ knowing, because the workarounds are still in the scripts.
 | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Gazebo crashes at startup (`gz::gui::Application`, Qt)                    | the window has nowhere to draw: an ssh session has no`DISPLAY`, because the container exports it only for the desktop it starts itself                                                                                    | `export DISPLAY=:0`, which `sim/env.sh` does. Then the launch opens its own window - no server-only patch needed                                                                                                                                                                                                         |
 | Server dies with`libEGL ... Permission denied`                            | **not a denial.** The GPU devices are there: `card0` is group `video` (44), which we have. Only the render nodes `renderD128/129` are group 110, which `ros` is not in - and only Mesa's GBM path wants those | render through a path that works:`DISPLAY=:0` (GLX, what the Summit XL sim uses here) or `--headless-rendering` (NVIDIA EGL device platform). `worlds/headless.sdf` and the `disable_*` flags remain as a fallback, not a requirement. Adding `supplementalGroups: [110]` to the pod would open the third path too |
-| Service calls hang, e.g.`controller_manager` is visible but never answers | **fixed in the pod.** `/dev/shm` used to be 64 MB, too small for FastDDS's shared-memory transport; it is 2 GB now                                                                                                  | nothing to do - the default middleware works.`sim/env.sh` still selects zenoh, which costs nothing (same real-time factor) and is the middleware the real-robot labs use. Drop that line from `env.sh` if you prefer the default                                                                                         |
+| Service calls hang, e.g.`controller_manager` is visible but never answers | **fixed in the pod.** `/dev/shm` used to be 64 MB, too small for the default middleware's shared-memory transport; it is 2 GB now | nothing to do. The simulation ran on zenoh for a while to work around this; it does not need to any more |
 | `rosdep` fails on `unitree_applications`                                | upstream typo — the folder is`unitree_application`                                                                                                                                                                       | `--skip-keys unitree_applications` (in `setup.sh`)                                                                                                                                                                                                                                                                       |
 
 ## Open

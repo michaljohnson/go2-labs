@@ -98,7 +98,7 @@ cd ~/go2-labs && ./robot/run.sh telemetry
 
 **Pod, terminal 2 — check before driving**
 ```bash
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp     # after env.sh, which sets zenoh
 export ROS_DOMAIN_ID=5
 echo "$RMW_IMPLEMENTATION / $ROS_DOMAIN_ID"      # never trust it, check it
@@ -109,7 +109,7 @@ show you a list from ten minutes and one middleware ago.
 
 **Pod, terminal 3 — teleop**
 ```bash
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export ROS_DOMAIN_ID=5
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
@@ -134,7 +134,7 @@ cat > $HOME/rap/zenoh_session.json5 <<'EOF'
 }
 EOF
 
-source ~/rap/cas/go2-labs/sim/env.sh          # keeps rmw_zenoh_cpp
+source ~/rap/go2-labs/sim/env.sh          # keeps rmw_zenoh_cpp
 export ZENOH_SESSION_CONFIG_URI=$HOME/rap/zenoh_session.json5
 export ROS_DOMAIN_ID=5
 ```
@@ -199,10 +199,14 @@ shape of the bug: check the node's own log line, which shows its namespace.
 The operator then addresses one dog:
 
 ```bash
-ROS_NAMESPACE=dog1 ros2 run teleop_twist_keyboard teleop_twist_keyboard   # works here: the
-                                                                          # CLI honours it
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r __ns:=/dog1
 ros2 topic pub -r 10 /dog1/cmd_vel geometry_msgs/msg/Twist "{angular: {z: 0.4}}"
 ```
+
+`ROS_NAMESPACE` does not work here either - teleop publishes to plain `/cmd_vel` and the dog
+never hears it, with no error anywhere. Checked on 24 Sep 2026. If a robot ignores teleop,
+`ros2 topic info /dogN/cmd_vel --no-daemon` and look at the publisher count: zero means the
+keystrokes are going somewhere else.
 
 The zenoh bridge also has its own `-n /dog1`, which scopes everything it routes without any
 node knowing. It works, and it is one flag instead of two. It is not used here because the

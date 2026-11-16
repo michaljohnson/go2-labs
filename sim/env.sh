@@ -1,10 +1,10 @@
 # Everything a terminal in the pod needs. Source it, don't run it:
 #
-#   source ~/rap/cas/go2-labs/sim/env.sh
+#   source ~/rap/go2-labs/sim/env.sh
 #
 # Put this line in ~/.bashrc and you never type it again:
 #
-#   echo 'source ~/rap/cas/go2-labs/sim/env.sh' >> ~/.bashrc
+#   echo 'source ~/rap/go2-labs/sim/env.sh' >> ~/.bashrc
 #
 # (~/.bashrc is wiped when the pod restarts, ~/rap is not - so the line has to be
 # re-added after a restart, or baked into the image.)

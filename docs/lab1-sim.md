@@ -46,14 +46,14 @@ not select a middleware: the simulation runs on the ROS default, so `ros2 topic 
 in any terminal that has ROS sourced at all.
 
 ```bash
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 ```
 
 Add it to `~/.bashrc` once and new terminals are ready by themselves - though `~/.bashrc`
 does not survive a pod restart, so `./sim/resume.sh` puts the line back:
 
 ```bash
-echo 'source ~/rap/cas/go2-labs/sim/env.sh' >> ~/.bashrc
+echo 'source ~/rap/go2-labs/sim/env.sh' >> ~/.bashrc
 ```
 
 ```bash

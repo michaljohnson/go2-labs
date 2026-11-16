@@ -12,7 +12,8 @@ set -e
 sudo apt-get update -qq
 
 BACKUP="$HOME/rap/authorized_keys.backup"
-ENVLINE='source ~/rap/cas/go2-labs/sim/env.sh'
+HERE="$(cd "$(dirname "$0")" && pwd)"   # so this works wherever the repo was put
+ENVLINE="source $HERE/env.sh"
 
 echo "== ssh server"
 if ! command -v sshd >/dev/null && [ ! -x /usr/sbin/sshd ]; then

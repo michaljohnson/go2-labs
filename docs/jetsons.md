@@ -105,7 +105,7 @@ publish into it.
 And in the pod:
 
 ```bash
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp     # after env.sh, which sets zenoh
 export ROS_DOMAIN_ID=5
 ros2 topic list --no-daemon                      # /dog1/cmd_vel, /dog1/odom, /dog1/mode

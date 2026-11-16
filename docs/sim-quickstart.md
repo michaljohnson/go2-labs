@@ -4,7 +4,7 @@ Three terminals in your pod's desktop. Every one of them starts with the same li
 fresh terminal has nothing loaded - `~/.bashrc` does not survive a pod restart.
 
 ```bash
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 ```
 
 That sets ROS, the simulation workspace and `DISPLAY=:0`. Without it `ros2` is not even on
@@ -18,7 +18,7 @@ wrong and you need to watch each one come up.
 ## 1. Gazebo and the dog
 
 ```bash
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 ros2 launch unitree_go2_sim unitree_go2_launch.py rviz:=false \
   world:=$HOME/rap/cas/go2_ws/src/unitree_go2_ros2/unitree_go2_description/worlds/lab.sdf
 ```
@@ -30,7 +30,7 @@ you are watching in the browser - not in this terminal.
 ## 2. Drive it
 
 ```bash
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
 
@@ -43,7 +43,7 @@ on `/cmd_vel`, and the simulated dog cannot tell the difference. Nor can the rea
 ## 3. RViz, if you want it
 
 ```bash
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 rviz2 -d $HOME/rap/cas/go2_ws/src/unitree_go2_ros2/unitree_go2_sim/rviz/rviz.rviz
 ```
 
@@ -66,7 +66,7 @@ no error.
 
 ```bash
 unset ROS_DOMAIN_ID RMW_IMPLEMENTATION ZENOH_SESSION_CONFIG_URI
-source ~/rap/cas/go2-labs/sim/env.sh
+source ~/rap/go2-labs/sim/env.sh
 ```
 
 ## Checking rather than guessing
@@ -86,5 +86,5 @@ what was true ten minutes ago.
 `Ctrl+C` each terminal. Or, which also clears the nodes the launch leaves behind:
 
 ```bash
-cd ~/rap/cas/go2-labs && ./sim/start.sh stop
+cd ~/rap/go2-labs && ./sim/start.sh stop
 ```

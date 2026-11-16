@@ -26,6 +26,13 @@ That is the whole point of the setup: `geometry_msgs/Twist` on `/cmd_vel`, nothi
 - **Lab 1:** an account for the RAP cluster and its pod; everything else is installed by `sim/setup.sh`
 - **Lab 2:** the dog, its Jetson, and the remote control in your hand
 
+## Capacity on the cluster
+
+Measured on a RAP pod, 21 Sep 2026: one Go2 simulation takes about **5-6 CPU cores** (Gazebo
+server ~190 %, GUI ~290 %) and ~25 % of an A30, at a real-time factor of 53-67 %. That is
+**4-5 students per cluster node**. A full class has never run at once - ask the cluster admin
+how many nodes there are and whether pods spread across them before planning one.
+
 ## Upstream projects
 
 We don't copy their instructions — read them at the source:

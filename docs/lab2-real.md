@@ -46,7 +46,7 @@ doesn't matter.
   repeats the last command at 10 Hz and sends `StopMove` 1 s after the last one. `k` stops at once;
   Ctrl+C in the bridge stops the dog before it exits
 
-## Driving it ✅
+## Driving it 
 
 Tested end to end: the image builds on a Jetson, the container drives the real dog with
 `teleop_twist_keyboard`, and bags record and replay.
@@ -136,7 +136,7 @@ changing. At boot NetworkManager picks the visible network with the highest
 `connection.autoconnect-priority`; **never leave every reachable network at autoconnect `no`**, or
 the Jetson comes up with no Wi-Fi and only a cable gets you back in.
 
-## Appendix — native install (for testing, not for students) ✅
+## Appendix — native install (for testing, not for students) 
 
 What was set up on the lab Jetson before the image existed, and what the bridge was tested with.
 Follow the [unitree_ros2 README](https://github.com/unitreerobotics/unitree_ros2) — it is written
